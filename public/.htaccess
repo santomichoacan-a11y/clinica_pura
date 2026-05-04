@@ -1,4 +1,11 @@
 RewriteEngine On
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^ index.php [QSA,L]
+RewriteBase /clinica_pura/public/
+
+# 1. Si el archivo o carpeta existe físicamente (ej: CSS, imágenes), cárgalo normal
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# 2. Si NO es un archivo/carpeta real, envía todo a index.php
+# La variable 'action' recibirá lo que pongas en la URL (ej: 'dashboard' o 'login')
+RewriteRule ^(.*)$ index.php?action=$1 [L,QSA]
