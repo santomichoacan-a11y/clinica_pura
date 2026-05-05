@@ -45,6 +45,11 @@ switch ($action) {
         include '../view/dashboard/index.php'; 
         break;
 
+        case 'usuarios':
+        // Interceptamos la URL limpia y cargamos el controlador que creamos
+        require_once __DIR__ . '/../app/controllers/users_controller.php';
+        break;
+
     case 'pacientes':
         require_once '../app/controllers/PatientController.php';
         $patientCtrl = new PatientController($db);
