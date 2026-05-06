@@ -10,35 +10,36 @@ class AuthController {
     }
 
     public function login() {
-        // Iniciar sesión para verificar si ya existe una
+        // En app.php ya se inicia la sesión, pero dejamos esto como doble seguro
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
 
-        // BLOQUEO 1: Si ya está logueado y trata de ver el login, al dashboard
+        // BLOQUEO 1: Si ya está logueado y trata de forzar la vista de login, al dashboard
         if (isset($_SESSION['user_id']) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header("Location: dashboard");
+            header("Location: " . BASE_URL . "dashboard");
             exit();
         }
 
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $username = $_POST['username'];
+            $username = trim($_POST['username']); // Limpiamos espacios en blanco accidentales
             $password = $_POST['password'];
 
             $user = $this->userModel->findByUsername($username);
 
             if ($user && password_verify($password, $user['password'])) {
-                // Regenerar el ID de sesión por seguridad tras el login
+                // Regenerar el ID de sesión por seguridad tras el login exitoso
                 session_regenerate_id(true);
                 
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['username'] = $user['username'];
                 $_SESSION['role'] = $user['role'];
                 
-                header("Location: dashboard");
+                // Redirección absoluta y segura usando tu constante global
+                header("Location: " . BASE_URL . "dashboard");
                 exit();
             } else {
-                // Puedes pasar un error a la vista en lugar de un echo
+                // Pasamos el error a la vista de login de forma elegante
                 $error = "Usuario o contraseña incorrectos";
                 include '../view/auth/login.php';
             }

@@ -1,6 +1,7 @@
 <?php
 /**
  * view/dashboard/index.php
+ * Adaptado para soportar carga dinámica asíncrona mediante cabeceras y tradicional (F5)
  */
 
 // 1. CARGA ÚNICA DE CONFIGURACIÓN GLOBAL Y ZONA HORARIA
@@ -10,6 +11,10 @@ checkAuth(); // Bloquea el acceso si no hay sesión
 // Forzamos la zona horaria para que coincida exactamente con tu entorno local
 date_default_timezone_set('America/El_Salvador'); 
 
+// MODIFICADO: DETECCIÓN ASÍNCRONA MEDIANTE CABECERA (Para URLs Amigables)
+$isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest');
+
+// Variables de control de interfaz (esenciales para el Layout)
 $pageTitle = "Dashboard | Clínica Pura";
 $activePage = "dashboard";
 
@@ -45,7 +50,7 @@ try {
     $stmtTotal = $db->query("SELECT COUNT(id) as total FROM patients");
     $totalReal = $stmtTotal->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
 
-    // B. Lógica de consulta dinámica usando WEEKDAY() (0=Lunes, 1=Martes, 2=Miércoles...)
+    // B. Lógica de consulta dinámica usando WEEKDAY() (0=Lunes, 1=Martes...)
     $diasMapeo = [
         0 => 'Lun',
         1 => 'Mar',
@@ -57,7 +62,6 @@ try {
     $fechaLunes = date('Y-m-d', strtotime('monday this week'));
     $fechaViernes = date('Y-m-d', strtotime('friday this week'));
 
-    // Usamos WEEKDAY() para asegurar compatibilidad exacta estándar
     $queryEstadisticas = "
         SELECT WEEKDAY(created_at) as dia_indice, COUNT(id) as total 
         FROM patients 
@@ -73,7 +77,6 @@ try {
     foreach ($resultadosEst as $row) {
         $indice = (int)$row['dia_indice'];
         
-        // Si el índice corresponde a Lunes-Viernes (0 al 4)
         if (isset($diasMapeo[$indice])) {
             $nombreDiaCorto = $diasMapeo[$indice];
             $flujoSemanalProcesado[$nombreDiaCorto]['conteo'] = (int)$row['total'];
@@ -84,7 +87,6 @@ try {
         }
     }
 
-    // Calcular los porcentajes proporcionales para las alturas de las barras
     foreach ($flujoSemanalProcesado as $dia => $datos) {
         if ($maxPacientesEnUnDia > 0) {
             $flujoSemanalProcesado[$dia]['porcentaje'] = round(($datos['conteo'] / $maxPacientesEnUnDia) * 100);
@@ -95,9 +97,12 @@ try {
     die("Error en el Dashboard: " . $e->getMessage());
 }
 
-// 3. INCLUSIÓN DE COMPONENTES DE INTERFAZ
-include_once VIEW_PATH . 'layout/header.php';
-include_once VIEW_PATH . 'layout/nav.php';
+// 3. CONDICIONAL DE RENDERIZADO EN BASE AL MODO DE NAVEGACIÓN
+// Si NO es una petición AJAX (Carga tradicional/F5), pintamos la estructura exterior completa
+if (!$isAjax) {
+    include_once VIEW_PATH . 'layout/header.php';
+    include_once VIEW_PATH . 'layout/nav.php';
+}
 ?>
 
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -183,7 +188,6 @@ include_once VIEW_PATH . 'layout/nav.php';
     </div>
 
     <div class="lg:col-span-7 space-y-8">
-        
         <div class="bg-white p-6 rounded-3xl border border-slate-100 soft-shadow">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-slate-100 gap-4">
                 <div>
@@ -195,9 +199,8 @@ include_once VIEW_PATH . 'layout/nav.php';
                 </span>
             </div>
             
-            <div class="h-44 w-full flex items-end justify-between px-4 pt-6 relative">
-                
-                <div class="absolute inset-x-0 bottom-0 top-6 border-b border-dashed border-slate-100 flex flex-col justify-between pointer-events-none">
+            <div class="h-48 w-full flex items-end justify-between px-2 pt-8 relative gap-2 sm:gap-4">
+                <div class="absolute inset-x-0 bottom-0 top-8 border-b border-dashed border-slate-100 flex flex-col justify-between pointer-events-none">
                     <div class="w-full border-t border-dashed border-slate-100/70"></div>
                     <div class="w-full border-t border-dashed border-slate-100/70"></div>
                     <div class="w-full border-t border-dashed border-slate-100/70"></div>
@@ -207,35 +210,35 @@ include_once VIEW_PATH . 'layout/nav.php';
                     $alturaEstetica = $data['porcentaje'];
                     if ($data['conteo'] > 0 && $alturaEstetica < 10) { $alturaEstetica = 10; } 
                 ?>
-                    <div class="flex flex-col items-center w-12 group relative">
-                        
+                    <div class="flex flex-col items-center flex-1 h-full justify-end group relative z-10 max-w-[48px]">
                         <?php if($data['es_hoy']): ?>
-                            <div class="w-full bg-gradient-to-t from-blue-600 to-cyan-400 rounded-t-xl relative transition-all duration-300" style="height: <?= $alturaEstetica ?>%;">
-                                <div class="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-lg shadow-lg z-10 whitespace-nowrap">
+                            <div class="w-full bg-gradient-to-t from-blue-600 to-cyan-400 rounded-t-xl relative transition-all duration-300 shadow-md shadow-blue-500/10" 
+                                 style="height: <?= $alturaEstetica ?>%;">
+                                <div class="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-lg shadow-lg z-20 whitespace-nowrap">
                                     <?= $data['conteo'] ?> Pac. (Hoy)
                                 </div>
                             </div>
                         <?php else: ?>
-                            <div class="w-full bg-slate-100 hover:bg-blue-100 rounded-t-xl transition-all duration-200 cursor-pointer relative" style="height: <?= $alturaEstetica ?>%;">
-                                <div class="absolute -top-7 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white text-[10px] font-medium px-2 py-0.5 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap">
+                            <div class="w-full bg-slate-100 hover:bg-blue-100 rounded-t-xl transition-all duration-200 cursor-pointer relative" 
+                                 style="height: <?= $alturaEstetica > 0 ? $alturaEstetica : 4 ?>%;"> 
+                                <div class="absolute -top-7 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white text-[10px] font-medium px-2 py-0.5 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none whitespace-nowrap z-20">
                                     <?= $data['conteo'] ?> registrados
                                 </div>
                             </div>
                         <?php endif; ?>
-
                     </div>
                 <?php endforeach; ?>
             </div>
-
-            <div class="flex justify-between text-[11px] font-bold px-4 mt-3 border-t border-slate-50 pt-2">
+    
+            <div class="flex justify-between text-[11px] font-bold px-2 mt-3 border-t border-slate-50 pt-2 gap-2 sm:gap-4">
                 <?php foreach($flujoSemanalProcesado as $dia => $data): ?>
-                    <span class="w-12 text-center <?= $data['es_hoy'] ? 'text-blue-600 font-extrabold' : 'text-slate-400 font-medium' ?>">
+                    <span class="flex-1 text-center <?= $data['es_hoy'] ? 'text-blue-600 font-extrabold' : 'text-slate-400 font-medium' ?>">
                         <?= $dia ?>
                     </span>
                 <?php endforeach; ?>
             </div>
         </div>
-
+    
         <div class="bg-white p-6 rounded-3xl border border-slate-100 soft-shadow">
             <div class="flex justify-between items-center mb-6">
                 <div>
@@ -282,11 +285,13 @@ include_once VIEW_PATH . 'layout/nav.php';
                 <?php endif; ?>
             </div>
         </div>
-
     </div>
 </div>
 
 <?php 
-// 4. INCLUSIÓN DEL CIERRE DEL LAYOUT
-include_once VIEW_PATH . 'layout/footer.php'; 
+// 4. CIERRE DEL LAYOUT TRADICIONAL
+// Solo incluimos el footer físico si el usuario entró vía F5
+if (!$isAjax) {
+    include_once VIEW_PATH . 'layout/footer.php'; 
+}
 ?>

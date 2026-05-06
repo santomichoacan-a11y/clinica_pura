@@ -27,7 +27,16 @@ define('VIEW_PATH', ROOT_PATH . 'view' . DIRECTORY_SEPARATOR);
  * Función auxiliar para proteger rutas privadas
  */
 function checkAuth() {
-    if (!isset($_SESSION['user_id'])) {
+    // MODIFICADO: Validamos que exista tanto el ID como el nombre de usuario
+    if (!isset($_SESSION['user_id']) && !isset($_SESSION['username'])) {
+        
+        // Si no existen, destruimos cualquier rastro de sesión vieja por seguridad
+        $_SESSION = array();
+        if (session_id() != "") { 
+            session_destroy(); 
+        }
+        
+        // Redirección limpia usando la constante global BASE_URL
         header("Location: " . BASE_URL . "login");
         exit();
     }

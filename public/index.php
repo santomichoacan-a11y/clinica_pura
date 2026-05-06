@@ -1,5 +1,11 @@
 <?php
 // public/index.php
+
+// 1. CARGA LA CONFIGURACIÓN GLOBAL PRIMERO
+// Esto activa el Anti-Caché del botón atrás, inicia la sesión de forma segura
+// y te da acceso a las constantes BASE_URL y VIEW_PATH.
+require_once __DIR__ . '/../app/config/app.php'; 
+
 require_once '../app/config/db.php';
 require_once '../app/controllers/AuthController.php';
 
@@ -29,13 +35,8 @@ switch ($action) {
         break;
 
     case 'dashboard':
-        if (session_status() === PHP_SESSION_NONE) session_start();
-        
-        // Seguridad: Si no hay sesión, volver al login
-        if (!isset($_SESSION['user_id'])) {
-            header("Location: login");
-            exit();
-        }
+        // Usamos la función global que definiste en app.php
+        checkAuth();
         
         // Cargar datos dinámicos para las estadísticas del dashboard
         require_once '../app/models/Patient.php';
@@ -45,66 +46,68 @@ switch ($action) {
         include '../view/dashboard/index.php'; 
         break;
 
-        case 'usuarios':
+    case 'usuarios':
+        checkAuth();
         // Interceptamos la URL limpia y cargamos el controlador que creamos
         require_once __DIR__ . '/../app/controllers/users_controller.php';
         break;
 
     case 'pacientes':
+        checkAuth();
         require_once '../app/controllers/PatientController.php';
         $patientCtrl = new PatientController($db);
         $patientCtrl->index();
         break;
 
     case 'pacientes/store':
+        checkAuth();
         require_once '../app/controllers/PatientController.php';
         $patientCtrl = new PatientController($db);
         $patientCtrl->store();
         break;
 
-    // --- NUEVAS RUTAS AGREGADAS PARA CORREGIR EL ERROR ---
-
     case 'pacientes/editar':
+        checkAuth();
         require_once '../app/controllers/PatientController.php';
         $id = $_GET['id'] ?? null;
         if ($id) {
             $patientCtrl = new PatientController($db);
             $patientCtrl->edit($id);
         } else {
-            header("Location: ../pacientes");
+            header("Location: " . BASE_URL . "pacientes");
+            exit();
         }
         break;
 
     case 'pacientes/update':
+        checkAuth();
         require_once '../app/controllers/PatientController.php';
         $patientCtrl = new PatientController($db);
         $patientCtrl->update();
         break;
 
     case 'pacientes/delete':
+        checkAuth();
         require_once '../app/controllers/PatientController.php';
         $id = $_GET['id'] ?? null;
         if ($id) {
             $patientCtrl = new PatientController($db);
             $patientCtrl->destroy($id);
         } else {
-            header("Location: ../pacientes");
+            header("Location: " . BASE_URL . "pacientes");
+            exit();
         }
         break;
 
-    // ---------------------------------------------------
-
+    // MODIFICADO: Ahora llamamos a tu script de destrucción masiva y segura
     case 'logout':
-        if (session_status() === PHP_SESSION_NONE) session_start();
-        session_destroy();
-        header("Location: login");
-        exit();
+        require_once __DIR__ . '/../app/controllers/logout.php';
         break;
 
     default:
         // Evita el bucle: si ya estás en login, no redirijas de nuevo a login
         if ($action !== 'login') {
-            header("Location: login");
+            header("Location: " . BASE_URL . "login");
             exit();
         }
         include '../view/auth/login.php';

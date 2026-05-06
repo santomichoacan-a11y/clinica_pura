@@ -1,7 +1,7 @@
 <?php
 /**
  * app/controllers/view_patient.php
- * Controlador para visualizar la ficha detallada de un paciente
+ * Controlador para visualizar y actualizar la ficha detallada de un paciente
  */
 
 header('Content-Type: text/html; charset=utf-8');
@@ -16,12 +16,8 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-// 2. CONFIGURACIÓN DE RUTA ABSOLUTA AUTOMÁTICA (CON EL CORTE DE PUBLIC)
-// Dado que tu .htaccess tiene la directiva: RewriteBase /clinica_pura/public/
-// Todos tus enlaces en las vistas deben apuntar directamente a esa carpeta pública.
+// 2. CONFIGURACIÓN DE RUTA ABSOLUTA AUTOMÁTICA
 $protocolo = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
-
-// Forzamos que termine estrictamente en /clinica_pura/public/
 $baseUrl = $protocolo . $_SERVER['HTTP_HOST'] . "/clinica_pura/public/";
 
 // 3. Incluir el archivo de conexión
@@ -36,7 +32,6 @@ if (file_exists($rutaConexion)) {
 $id_paciente = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
 if ($id_paciente <= 0) {
-    // Usamos la URL absoluta corregida para redirigir en caso de error
     header("Location: " . $baseUrl . "index.php?error=id_invalido");
     exit();
 }
@@ -45,6 +40,42 @@ try {
     $database = new Database();
     $conn = $database->getConnection();
 
+    // =========================================================================
+    // NUEVA LÓGICA: PROCESAR EL ENVIÓ DEL MODAL DE EDICIÓN (PETICIÓN POST)
+    // =========================================================================
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
+        $nombre = trim($_POST['nombre'] ?? '');
+        $dni = trim($_POST['dni'] ?? '');
+        $telefono = trim($_POST['telefono'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $historial = trim($_POST['historial'] ?? '');
+
+        if (!empty($nombre) && !empty($dni)) {
+            $sql_update = "UPDATE patients 
+                           SET nombre = :nombre, dni = :dni, telefono = :telefono, email = :email, historial = :historial 
+                           WHERE id = :id";
+            
+            $stmt_update = $conn->prepare($sql_update);
+            $stmt_update->bindParam(':nombre', $nombre);
+            $stmt_update->bindParam(':dni', $dni);
+            $stmt_update->bindParam(':telefono', $telefono);
+            $stmt_update->bindParam(':email', $email);
+            $stmt_update->bindParam(':historial', $historial);
+            $stmt_update->bindParam(':id', $id_paciente, PDO::PARAM_INT);
+
+            if ($stmt_update->execute()) {
+                // Mensaje temporal de éxito para reflejar en el layout
+                $status_msg = "✅ Cambios guardados correctamente.";
+            } else {
+                $status_msg = "❌ Error al intentar actualizar en la base de datos.";
+            }
+        } else {
+            $status_msg = "❌ El nombre y el DNI son campos obligatorios.";
+        }
+    }
+    // =========================================================================
+
+    // Cargar los datos frescos del paciente (Refleja los cambios si se guardó el POST)
     $sql = "SELECT id, nombre, dni, telefono, email, historial 
             FROM patients 
             WHERE id = :id 
@@ -57,7 +88,6 @@ try {
     $paciente = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$paciente) {
-        // Usamos la URL absoluta corregida para redirigir
         header("Location: " . $baseUrl . "index.php?error=no_encontrado");
         exit();
     }
@@ -65,11 +95,17 @@ try {
     // Configuración de variables requeridas por el Layout
     $activePage = 'pacientes'; 
     $username = $_SESSION['username'] ?? 'Médico';
-    $role = $_SESSION['role'] ?? 'invitado'; // Aseguramos que la variable de rol pase al nav
+    $role = $_SESSION['role'] ?? 'invitado'; 
 
     // 4. Cargar la interfaz
     include __DIR__ . '/../../view/layout/header.php';
-    include __DIR__ . '/../../view/layout/nav.php'; // Recibe el $baseUrl con /public/
+    include __DIR__ . '/../../view/layout/nav.php'; 
+    
+    // Si hay un mensaje de actualización, lo imprimimos rápido arriba
+    if (isset($status_msg)) {
+        echo "<div class='max-w-5xl mx-auto mt-4 px-4'><div class='p-3 bg-blue-50 border border-blue-200 text-blue-700 text-sm font-semibold rounded-2xl text-center shadow-sm'>{$status_msg}</div></div>";
+    }
+
     include __DIR__ . '/../../view/patients/view_patient.php';  
     include __DIR__ . '/../../view/layout/footer.php';
 

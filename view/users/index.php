@@ -35,9 +35,7 @@ include_once VIEW_PATH . 'layout/nav.php';
     <?php endif; ?>
 
     <div class="bg-white rounded-3xl border border-slate-100 soft-shadow overflow-hidden">
-        <div class="p-6 border-b border-slate-50">
-            <h3 class="text-base font-bold text-slate-800">Cuentas Activas</h3>
-        </div>
+        
 
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
