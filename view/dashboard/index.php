@@ -268,9 +268,7 @@ if (!$isAjax) {
                                 </div>
                             </div>
                             <div class="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end">
-                                <span class="text-xs font-medium text-slate-500 bg-white border border-slate-100 px-3 py-1 rounded-full">
-                                    <i class="fa-solid fa-file-medical text-blue-400 mr-1"></i> Expediente Activo
-                                </span>
+                                
                                 <a href="<?= BASE_URL ?>../app/controllers/view_patient.php?id=<?= $paciente['id'] ?>" class="text-xs font-bold text-blue-600 hover:bg-blue-50 px-3 py-1.5 rounded-xl border border-blue-100 transition-all text-center">
                                     Ver Perfil
                                 </a>

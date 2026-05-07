@@ -92,21 +92,21 @@ include __DIR__ . '/../layout/nav.php'; // Ahora leerá el $baseUrl correcto con
                             <td class="px-6 py-4">
                                 <div class="flex items-center justify-center space-x-1.5">
                                     <a href="../app/controllers/view_patient.php?id=<?= $p['id'] ?>" 
-                                       class="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition-all" 
-                                       title="Ver Expediente Médico">
-                                        <i class="fa-solid fa-notes-medical text-sm"></i>
+                                    class="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" 
+                                    title="Ver Expediente Médico">
+                                        <i class="fa-solid fa-eye text-sm"></i>
                                     </a>
 
                                     <button onclick='abrirModalEditar(<?= json_encode($p) ?>)' 
-                                            class="p-2 text-amber-500 hover:bg-amber-50 rounded-xl transition-all" 
+                                            class="p-2 text-sky-500 hover:bg-sky-50 rounded-xl transition-all" 
                                             title="Editar Información">
-                                        <i class="fa-solid fa-pen-to-square text-sm"></i>
+                                        <i class="fa-solid fa-user-pen text-sm"></i>
                                     </button>
 
                                     <button onclick="confirmarEliminar(<?= $p['id'] ?>, '<?= htmlspecialchars($p['nombre']) ?>')" 
-                                            class="p-2 text-red-500 hover:bg-red-50 rounded-xl transition-all" 
+                                            class="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition-all" 
                                             title="Eliminar del Sistema">
-                                        <i class="fa-solid fa-trash-can text-sm"></i>
+                                        <i class="fa-solid fa-circle-xmark text-sm"></i>
                                     </button>
                                 </div>
                             </td>
@@ -122,7 +122,7 @@ include __DIR__ . '/../layout/nav.php'; // Ahora leerá el $baseUrl correcto con
                         </tr>
                     <?php endif; ?>
                 </tbody>
-            </table>
+                            </table>
         </div>
     </div>
 </div>
