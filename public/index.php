@@ -2,8 +2,6 @@
 // public/index.php
 
 // 1. CARGA LA CONFIGURACIÓN GLOBAL PRIMERO
-// Esto activa el Anti-Caché del botón atrás, inicia la sesión de forma segura
-// y te da acceso a las constantes BASE_URL y VIEW_PATH.
 require_once __DIR__ . '/../app/config/app.php'; 
 
 require_once '../app/config/db.php';
@@ -16,8 +14,8 @@ $db = $database->getConnection();
 $base_path = '/clinica_pura/public/';
 $request_uri = $_SERVER['REQUEST_URI'];
 $path = str_replace($base_path, '', $request_uri);
-$action = explode('?', $path)[0];
-$action = trim($action, '/');
+$parts = explode('?', $path);
+$action = trim($parts[0], '/');
 
 // Acción por defecto
 if ($action == '' || $action == 'index.php') {
@@ -35,23 +33,25 @@ switch ($action) {
         break;
 
     case 'dashboard':
-        // Usamos la función global que definiste en app.php
         checkAuth();
-        
-        // Cargar datos dinámicos para las estadísticas del dashboard
         require_once '../app/models/Patient.php';
+        require_once '../app/models/Consultation.php'; // Nuevo Modelo
+        
         $pModel = new Patient($db);
+        $cModel = new Consultation($db);
+        
         $totalPacientes = $pModel->countAll(); 
+        $totalConsultas = $cModel->countTotal(); // Para tu nuevo contador
 
         include '../view/dashboard/index.php'; 
         break;
 
     case 'usuarios':
         checkAuth();
-        // Interceptamos la URL limpia y cargamos el controlador que creamos
         require_once __DIR__ . '/../app/controllers/users_controller.php';
         break;
 
+    /* --- MÓDULO DE PACIENTES --- */
     case 'pacientes':
         checkAuth();
         require_once '../app/controllers/PatientController.php';
@@ -99,13 +99,33 @@ switch ($action) {
         }
         break;
 
-    // MODIFICADO: Ahora llamamos a tu script de destrucción masiva y segura
+    case 'consultas':
+        checkAuth();
+        require_once '../app/controllers/ConsultationsController.php'; // 1. Cargas el archivo
+        $consultationCtrl = new ConsultationsController($db);         // 2. Creas el objeto
+        $consultationCtrl->index();                                   // 3. Llamas al método
+        break;
+
+    case 'consultas/guardar':
+        checkAuth();
+        require_once '../app/controllers/ConsultationsController.php';
+        $consultationCtrl = new ConsultationsController($db);
+        $consultationCtrl->save();
+        break;
+
+    case 'consultas/eliminar':
+        checkAuth();
+        require_once '../app/controllers/ConsultationsController.php';
+        $consultationCtrl = new ConsultationsController($db);
+        $id = $_GET['id'] ?? null;
+        $consultationCtrl->eliminar($id);
+        break;
+        
     case 'logout':
         require_once __DIR__ . '/../app/controllers/logout.php';
         break;
 
     default:
-        // Evita el bucle: si ya estás en login, no redirijas de nuevo a login
         if ($action !== 'login') {
             header("Location: " . BASE_URL . "login");
             exit();

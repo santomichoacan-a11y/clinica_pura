@@ -33,7 +33,7 @@ include __DIR__ . '/../layout/nav.php'; // Ahora leerá el $baseUrl correcto con
     <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 pb-5 border-b border-slate-100 gap-4">
         <div>
             <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-950 tracking-tight">Gestión de Pacientes</h1>
-            <p class="text-slate-500 text-sm">Listado y registro de pacientes activos en el sistema</p>
+            <p class="text-slate-500 text-sm">Administración y seguimiento detallado de expedientes de pacientes.</p>
         </div>
         
         <button onclick="toggleModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-full shadow-md shadow-blue-500/10 transition flex items-center font-semibold text-sm">
@@ -41,27 +41,27 @@ include __DIR__ . '/../layout/nav.php'; // Ahora leerá el $baseUrl correcto con
         </button>
     </header>
 
-    <?php if(isset($_GET['status'])): ?>
+    <?php if(isset($_GET['status']) && !in_array($_GET['status'], ['success', 'updated', 'deleted'])): ?>
         <?php 
             $status = $_GET['status'];
-            $isSuccess = in_array($status, ['success', 'updated', 'deleted']);
-            
+            // Si llegamos aquí, es porque hubo un error (no es success, ni updated, ni deleted)
             $message = 'Hubo un error al procesar la solicitud.';
-            if($status == 'success') $message = 'Paciente registrado correctamente.';
-            if($status == 'updated') $message = 'Paciente actualizado con éxito.';
-            if($status == 'deleted') $message = 'Paciente eliminado correctamente.';
+            
+            // Aquí puedes agregar validaciones de errores específicos que vengan por URL
+            if($status == 'error_db') $message = 'Error: Ya existe un registro con esos datos.';
+            if($status == 'invalid') $message = 'Error: Datos mal ingresados o incompletos.';
         ?>
         
-        <div class="<?= $isSuccess ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-red-50 text-red-700 border-red-100' ?> p-4 rounded-2xl mb-6 flex items-center border shadow-sm text-sm">
-            <i class="fa-solid <?= $isSuccess ? 'fa-circle-check text-emerald-500' : 'fa-triangle-exclamation text-red-500' ?> mr-3 text-lg"></i>
-            <span class="font-semibold"><?= $message ?></span>
+        <div class="bg-red-50 text-red-700 border-red-100 p-4 rounded-2xl mb-6 flex items-center border shadow-sm text-sm">
+            <i class="fa-solid fa-triangle-exclamation text-red-500 mr-3 text-lg"></i>
+            <span class="font-semibold"><?= htmlspecialchars($message) ?></span>
         </div>
     <?php endif; ?>
 
     <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
-                <thead>
+                <thead class="bg-slate-50/50">
                     <tr class="bg-slate-50/70 border-b border-slate-100 text-slate-400 text-[11px] uppercase tracking-wider font-bold">
                         <th class="px-6 py-4">Nombre Completo</th>
                         <th class="px-6 py-4">DNI / Identificación</th>
@@ -76,7 +76,7 @@ include __DIR__ . '/../layout/nav.php'; // Ahora leerá el $baseUrl correcto con
                         <tr class="hover:bg-slate-50/50 transition-colors">
                             <td class="px-6 py-4">
                                 <p class="font-bold text-slate-900 leading-snug"><?= htmlspecialchars($p['nombre']) ?></p>
-                                <p class="text-[10px] font-mono text-slate-400 mt-0.5">ID: #<?= $p['id'] ?></p>
+                                
                             </td>
                             <td class="px-6 py-4 text-slate-600 text-xs font-semibold">
                                 <span class="bg-slate-100 px-2.5 py-1 rounded-md text-slate-700 border border-slate-200/40">
@@ -127,44 +127,64 @@ include __DIR__ . '/../layout/nav.php'; // Ahora leerá el $baseUrl correcto con
     </div>
 </div>
 
-<div id="modalPaciente" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center z-50 p-4 animate-fade-in">
-    <div class="bg-white rounded-3xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-100">
-        <div class="bg-slate-950 p-6 text-white flex justify-between items-center">
-            <h3 class="text-lg font-bold">Registrar Nuevo Paciente</h3>
-            <button onclick="toggleModal()" class="text-slate-400 hover:text-white transition-colors text-xl">
+<div id="modalPaciente" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm invisible opacity-0 transition-all duration-300">
+    
+    <div class="bg-white w-full max-w-md rounded-[2.5rem] border border-slate-100 shadow-2xl transform scale-95 transition-transform duration-300 p-8 relative">
+        
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
+                    <i class="fa-solid fa-user-plus text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-extrabold text-slate-900">Nuevo Paciente</h3>
+                    <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Registro de ingreso</p>
+                </div>
+            </div>
+            <button type="button" onclick="toggleModal()" class="w-9 h-9 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all hover:rotate-90">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
-        
-        <form action="pacientes/store" method="POST" class="p-6 space-y-4">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="sm:col-span-2">
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Nombre Completo</label>
-                    <input type="text" name="nombre" required class="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm">
+
+        <form action="pacientes/store" method="POST" class="space-y-4">
+            <div>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Nombre Completo</label>
+                <input type="text" name="nombre" required placeholder="Ej: Juan Pérez"
+                    class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm font-medium focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all outline-none">
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">DNI / Cédula</label>
+                    <input type="text" name="dni" required 
+                        class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm font-medium focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all outline-none">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">DNI / Cédula</label>
-                    <input type="text" name="dni" required class="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Teléfono</label>
-                    <input type="text" name="telefono" class="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm">
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Teléfono</label>
+                    <input type="text" name="telefono" 
+                        class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm font-medium focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all outline-none">
                 </div>
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Correo Electrónico</label>
-                <input type="email" name="email" class="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm">
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Correo Electrónico</label>
+                <input type="email" name="email" placeholder="ejemplo@correo.com"
+                    class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm font-medium focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all outline-none">
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">Historial / Observaciones Iniciales</label>
-                <textarea name="historial" rows="3" class="w-full px-4 py-2.5 rounded-2xl border border-slate-200 focus:ring-2 focus:ring-blue-500 outline-none transition-all text-sm resize-none"></textarea>
+                <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-1">Historial / Observaciones</label>
+                <textarea name="historial" rows="2" 
+                    class="w-full px-4 py-3 rounded-2xl border border-slate-200 text-sm font-medium focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all outline-none resize-none"></textarea>
             </div>
 
-            <div class="flex space-x-3 pt-4">
-                <button type="button" onclick="toggleModal()" class="flex-1 px-4 py-3 rounded-full border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition-all">Cancelar</button>
-                <button type="submit" class="flex-1 px-4 py-3 rounded-full bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 shadow-md shadow-blue-500/10 transition-all">Guardar Paciente</button>
+            <div class="pt-4 flex gap-3">
+                <button type="button" onclick="toggleModal()" class="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-2xl transition-all uppercase tracking-widest">
+                    Cancelar
+                </button>
+                <button type="submit" class="flex-1 py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-2xl shadow-lg shadow-blue-500/20 transition-all uppercase tracking-widest">
+                    Guardar Registro
+                </button>
             </div>
         </form>
     </div>
@@ -212,47 +232,7 @@ include __DIR__ . '/../layout/nav.php'; // Ahora leerá el $baseUrl correcto con
     </div>
 </div>
 
-<script>
-// Manejo visual de ventanas modales
-function toggleModal() {
-    const modal = document.getElementById('modalPaciente');
-    modal.classList.toggle('hidden');
-    modal.classList.toggle('flex');
-}
-
-function abrirModalEditar(paciente) {
-    document.getElementById('edit_id').value = paciente.id;
-    document.getElementById('edit_nombre').value = paciente.nombre;
-    document.getElementById('edit_dni').value = paciente.dni;
-    document.getElementById('edit_telefono').value = paciente.telefono;
-    document.getElementById('edit_email').value = paciente.email;
-    document.getElementById('edit_historial').value = paciente.historial;
-
-    const modal = document.getElementById('modalEditar');
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-}
-
-function cerrarModal() {
-    const modal = document.getElementById('modalEditar');
-    modal.classList.remove('flex');
-    modal.classList.add('hidden');
-}
-
-function confirmarEliminar(id, nombre) {
-    if (confirm(`¿Estás seguro de que deseas eliminar al paciente "${nombre}"? Esta acción eliminará permanentemente su historial clínico.`)) {
-        window.location.href = `pacientes/delete?id=${id}`;
-    }
-}
-
-// Cerrar modales clickeando en la capa translúcida de fondo
-window.onclick = function(event) {
-    const modalEditar = document.getElementById('modalEditar');
-    const modalPaciente = document.getElementById('modalPaciente');
-    if (event.target == modalEditar) { cerrarModal(); }
-    if (event.target == modalPaciente) { toggleModal(); }
-}
-</script>
+   <script src="<?= BASE_URL ?>js/patients.js"></script>
 
 <?php 
 // 3. Incluir la estructura de scripts y cierre del Layout

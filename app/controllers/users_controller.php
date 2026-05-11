@@ -11,16 +11,15 @@ $db = $database->getConnection();
 
 $action = $_GET['action'] ?? 'list';
 $error = '';
-$success = '';
 
 // --- PROCESAMIENTO DE FORMULARIOS (POST) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
-    // 1. CREATE USER
+    // 1. CREAR USUARIO
     if ($action === 'create') {
         $username = trim($_POST['username']);
         $password = $_POST['password'];
-        $role = $_POST['role'] ?? 'user'; // Cambiado de 'staff' a 'user'
+        $role = $_POST['role'] ?? 'user';
 
         if (!empty($username) && !empty($password)) {
             $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
@@ -33,7 +32,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ':password' => $hashedPassword,
                     ':role' => $role
                 ]);
-                $_SESSION['flash_success'] = "User created successfully.";
+                // Mensaje en español para SweetAlert
+                $_SESSION['flash_success'] = "Usuario registrado correctamente.";
                 header("Location: " . BASE_URL . "usuarios");
                 exit;
             } catch (PDOException $e) {
@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // 2. UPDATE USER
+    // 2. ACTUALIZAR USUARIO
     if ($action === 'update') {
         $id = (int)$_POST['id'];
         $username = trim($_POST['username']);
@@ -62,7 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             $stmt = $db->prepare($query);
             $stmt->execute($params);
-            $_SESSION['flash_success'] = "User updated successfully.";
+            // Mensaje en español para SweetAlert
+            $_SESSION['flash_success'] = "Datos actualizados correctamente.";
             header("Location: " . BASE_URL . "usuarios");
             exit;
         } catch (PDOException $e) {
@@ -75,20 +76,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 if ($action === 'delete') {
     $id = (int)$_GET['id'];
     
-    // Seguridad: Evitar que el usuario activo se borre a sí mismo
     if ($id === (int)$_SESSION['user_id']) {
         $_SESSION['flash_error'] = "You cannot delete your own active account.";
     } else {
         $query = "DELETE FROM users WHERE id = :id";
         $stmt = $db->prepare($query);
         $stmt->execute([':id' => $id]);
-        $_SESSION['flash_success'] = "User removed from staff database.";
+        // Mensaje en español para SweetAlert
+        $_SESSION['flash_success'] = "Usuario eliminado con éxito.";
     }
     header("Location: " . BASE_URL . "usuarios");
     exit;
 }
 
-// --- CONSULTA GENERAL DE USUARIOS (Línea 98 corregida sin columna email) ---
+// --- CONSULTA GENERAL ---
 $query = "SELECT id, username, role FROM users ORDER BY id DESC";
 $stmt = $db->prepare($query);
 $stmt->execute();
@@ -103,4 +104,5 @@ if ($action === 'edit' && isset($_GET['id'])) {
     $userToEdit = $stmtEdit->fetch(PDO::FETCH_ASSOC);
 }
 
+// Carga la vista final
 include_once VIEW_PATH . 'users/index.php';

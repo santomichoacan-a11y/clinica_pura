@@ -37,4 +37,11 @@ $totalReal = $totalPacientes ?? $totalReal ?? 0;
         }
     </style>
 </head>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    // Definimos la raíz del proyecto para los archivos JS
+    const BASE_URL = '/clinica_pura/'; 
+</script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 <body class="bg-[#f6f8fb] flex flex-col md:flex-row min-h-screen font-sans antialiased text-slate-700">

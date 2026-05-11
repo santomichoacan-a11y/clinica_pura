@@ -41,7 +41,7 @@ try {
     $conn = $database->getConnection();
 
     // =========================================================================
-    // NUEVA LÓGICA: PROCESAR EL ENVIÓ DEL MODAL DE EDICIÓN (PETICIÓN POST)
+    // PROCESAR EL ENVIÓ DEL MODAL DE EDICIÓN (PETICIÓN POST)
     // =========================================================================
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
         $nombre = trim($_POST['nombre'] ?? '');
@@ -64,7 +64,6 @@ try {
             $stmt_update->bindParam(':id', $id_paciente, PDO::PARAM_INT);
 
             if ($stmt_update->execute()) {
-                // Mensaje temporal de éxito para reflejar en el layout
                 $status_msg = "✅ Cambios guardados correctamente.";
             } else {
                 $status_msg = "❌ Error al intentar actualizar en la base de datos.";
@@ -73,9 +72,10 @@ try {
             $status_msg = "❌ El nombre y el DNI son campos obligatorios.";
         }
     }
-    // =========================================================================
 
-    // Cargar los datos frescos del paciente (Refleja los cambios si se guardó el POST)
+    // =========================================================================
+    // CARGAR DATOS DEL PACIENTE
+    // =========================================================================
     $sql = "SELECT id, nombre, dni, telefono, email, historial 
             FROM patients 
             WHERE id = :id 
@@ -84,13 +84,29 @@ try {
     $stmt = $conn->prepare($sql);
     $stmt->bindParam(':id', $id_paciente, PDO::PARAM_INT);
     $stmt->execute();
-
     $paciente = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$paciente) {
         header("Location: " . $baseUrl . "index.php?error=no_encontrado");
         exit();
     }
+
+    // =========================================================================
+    // NUEVO: CARGAR HISTORIAL DE CONSULTAS (De la tabla consultations)
+    // =========================================================================
+    $sql_consultas = "SELECT reason, diagnosis, treatment, created_at 
+                      FROM consultations 
+                      WHERE patient_id = :id 
+                      ORDER BY created_at DESC";
+                      
+    $stmt_c = $conn->prepare($sql_consultas);
+    $stmt_c->bindParam(':id', $id_paciente, PDO::PARAM_INT);
+    $stmt_c->execute();
+    
+    // Esta variable es la que utiliza tu foreach en view_patient.php
+    $historial_atenciones = $stmt_c->fetchAll(PDO::FETCH_ASSOC);
+
+    // =========================================================================
 
     // Configuración de variables requeridas por el Layout
     $activePage = 'pacientes'; 
@@ -101,7 +117,6 @@ try {
     include __DIR__ . '/../../view/layout/header.php';
     include __DIR__ . '/../../view/layout/nav.php'; 
     
-    // Si hay un mensaje de actualización, lo imprimimos rápido arriba
     if (isset($status_msg)) {
         echo "<div class='max-w-5xl mx-auto mt-4 px-4'><div class='p-3 bg-blue-50 border border-blue-200 text-blue-700 text-sm font-semibold rounded-2xl text-center shadow-sm'>{$status_msg}</div></div>";
     }

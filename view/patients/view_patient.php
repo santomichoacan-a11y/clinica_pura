@@ -70,16 +70,60 @@ $urlListado = (isset($baseUrl)) ? $baseUrl . "pacientes" : "../../public/pacient
             </div>
         </div>
 
-        <div class="lg:col-span-2">
-            <div class="bg-white p-6 sm:p-8 rounded-3xl border border-slate-100 shadow-sm min-h-[380px]">
-                <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2.5 mb-6 pb-4 border-b border-slate-100">
-                    <i class="fa-solid fa-notes-medical text-blue-500"></i> Evolución Clínica
-                </h3>
-                <div class="bg-slate-50 p-5 rounded-2xl border border-slate-100 shadow-inner">
-                    <p class="text-slate-700 text-sm whitespace-pre-wrap"><?= htmlspecialchars($paciente['historial'] ?? 'Sin antecedentes') ?></p>
-                </div>
-            </div>
+        <div class="lg:col-span-2 space-y-6">
+    <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+        <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-file-medical text-blue-500"></i> Antecedentes Personales
+        </h3>
+        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+            <p class="text-slate-700 text-sm"><?= nl2br(htmlspecialchars($paciente['historial'] ?? 'Sin antecedentes registrados')) ?></p>
         </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+        <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
+            <i class="fa-solid fa-clock-rotate-left text-blue-500"></i> Historial de Atenciones Médicas
+        </h3>
+
+        <?php if (empty($historial_atenciones)): ?>
+            <p class="text-slate-400 text-sm text-center py-8">No hay consultas registradas aún.</p>
+        <?php else: ?>
+            <div class="space-y-4">
+                <?php foreach ($historial_atenciones as $con): ?>
+                    <div class="relative pl-6 border-l-2 border-blue-100 pb-6 last:pb-0">
+                        <div class="absolute -left-[9px] top-0 w-4 h-4 bg-blue-500 rounded-full border-4 border-white shadow-sm"></div>
+                        
+                        <div class="bg-slate-50 p-4 rounded-2xl border border-slate-100 hover:border-blue-200 transition-colors">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md uppercase">
+                                    <?= date('d/m/Y h:i A', strtotime($con['created_at'])) ?>
+                                </span>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Motivo de Consulta</h4>
+                                    <p class="text-sm font-semibold text-slate-800"><?= htmlspecialchars($con['reason']) ?></p>
+                                </div>
+                                <div>
+                                    <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Diagnóstico</h4>
+                                    <p class="text-sm text-slate-600"><?= htmlspecialchars($con['diagnosis'] ?? 'N/A') ?></p>
+                                </div>
+                            </div>
+                            
+                            <?php if(!empty($con['treatment'])): ?>
+                                <div class="mt-3 pt-3 border-t border-slate-200/60">
+                                    <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Tratamiento</h4>
+                                    <p class="text-sm text-slate-600 italic"><?= htmlspecialchars($con['treatment']) ?></p>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
     </div>
 </div>
 

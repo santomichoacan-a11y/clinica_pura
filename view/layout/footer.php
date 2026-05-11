@@ -14,8 +14,10 @@
         const overlay = document.getElementById('sidebar-overlay');
 
         function toggleMenu() {
-            sidebar.classList.toggle('-translate-x-full');
-            overlay.classList.toggle('hidden');
+            if (sidebar && overlay) {
+                sidebar.classList.toggle('-translate-x-full');
+                overlay.classList.toggle('hidden');
+            }
         }
 
         if (menuToggle && sidebar && overlay) {
@@ -26,11 +28,35 @@
         // ==========================================
         // 2. MOTOR DE BÚSQUEDA ASÍNCRONA DE PACIENTES
         // ==========================================
-        const searchInput = document.getElementById('search-input');
-        const searchResults = document.getElementById('search-results');
-        let debounceTimer;
+        (function() {
+            // Identificamos los elementos
+            const searchInput = document.getElementById('search-input');
+            const searchResults = document.getElementById('search-results');
+            
+            // --- BLOQUEO DE VISTAS ESPECÍFICAS ---
+            // Obtenemos la URL completa y la pasamos a minúsculas
+            const currentUrl = window.location.href.toLowerCase();
+            
+            // Definimos las palabras clave que disparan el bloqueo
+            const isRestricted = currentUrl.includes('/consultas') || 
+                                 currentUrl.includes('/usuarios') || 
+                                currentUrl.includes('/reports') ||
+                                currentUrl.includes('view_patient') || 
+                                currentUrl.includes('/patients/view');
 
-        if (searchInput && searchResults) {
+            // Si no hay input o estamos en vista restringida, salimos
+            if (!searchInput || !searchResults || isRestricted) {
+                // Si existe el input pero la vista es restringida, lo desactivamos visualmente
+                if (searchInput && isRestricted) {
+                    searchInput.disabled = true;
+                    searchInput.placeholder = "Buscador no disponible aquí";
+                    searchInput.classList.add('opacity-50', 'cursor-not-allowed');
+                }
+                return; 
+            }
+
+            let debounceTimer;
+
             searchInput.addEventListener('input', function() {
                 clearTimeout(debounceTimer);
                 const query = this.value.trim();
@@ -42,12 +68,10 @@
                 }
 
                 debounceTimer = setTimeout(() => {
-                    // CORRECCIÓN MANTENIDA: Apunta al archivo unificado en controllers/
+                    // Ruta relativa mantenida de tu código original
                     fetch(`../app/controllers/search_patients.php?query=${encodeURIComponent(query)}`)
                         .then(response => {
-                            if (!response.ok) {
-                                throw new Error('Error en la respuesta del servidor');
-                            }
+                            if (!response.ok) throw new Error('Error en servidor');
                             return response.json();
                         })
                         .then(data => {
@@ -69,67 +93,51 @@
                                 const item = document.createElement('div');
                                 item.className = "flex items-center justify-between p-3 hover:bg-slate-50 border-b border-slate-50 last:border-0 transition-colors";
                                 
-                                item.innerHTML = `
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 ${avatarBg} rounded-full flex items-center justify-center font-bold text-xs">
-                                            ${iniciales}
-                                        </div>
-                                        <div>
-                                            <h4 class="text-xs font-bold text-slate-800">${paciente.nombre}</h4>
-                                            <span class="text-[10px] text-slate-400 font-mono">DNI: ${paciente.dni}</span>
-                                        </div>
+                               item.innerHTML = `
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 ${avatarBg} rounded-full flex items-center justify-center font-bold text-xs">
+                                        ${iniciales}
                                     </div>
-                                    <button data-id="${paciente.id}" data-nombre="${paciente.nombre}" 
-                                        class="btn-seleccionar-paciente text-[11px] font-bold text-blue-600 hover:bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100 transition-all">
-                                        Seleccionar
-                                    </button>
-                                `;
-                                searchResults.appendChild(item);
+                                    <div>
+                                        <h4 class="text-xs font-bold text-slate-800">${paciente.nombre}</h4>
+                                        <span class="text-[10px] text-slate-400 font-mono">DNI: ${paciente.dni}</span>
+                                    </div>
+                                </div>
+                                <button onclick="seleccionarPaciente('${paciente.id}', '${paciente.nombre}')" 
+                                    class="text-[11px] font-bold text-blue-600 border border-blue-100 px-4 py-2 rounded-xl transition-all hover:bg-blue-600 hover:text-white hover:border-blue-600">
+                                    <i class="fa-solid fa-eye mr-1"></i> Ver Perfil Detallado
+                                </button>
+                            `;
+                            searchResults.appendChild(item);
                             });
 
                             searchResults.classList.remove('hidden');
                         })
-                        .catch(err => {
-                            console.error("Error en la petición de búsqueda:", err);
-                        });
+                        .catch(err => console.error("Error en búsqueda:", err));
                 }, 300);
             });
 
-            searchResults.addEventListener('click', function(e) {
-                const boton = e.target.closest('.btn-seleccionar-paciente');
-                if (boton) {
-                    const id = boton.getAttribute('data-id');
-                    const nombre = boton.getAttribute('data-nombre');
-                    
-                    seleccionarPaciente({ id, nombre });
-                }
-            });
-
+            // Cerrar resultados al hacer clic fuera
             document.addEventListener('click', function(e) {
                 if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
                     searchResults.classList.add('hidden');
                 }
             });
-        }
+        })();
 
         // ==========================================
-// 3. ACCIÓN AL SELECCIONAR UN PACIENTE
-// ==========================================
-function seleccionarPaciente(paciente) {
-    // 1. Ocultar la lista flotante de resultados
-    if (searchResults) {
-        searchResults.classList.add('hidden');
-    }
-    
-    // 2. Opcional: Rellenar el input de búsqueda con el nombre del paciente seleccionado
-    if (searchInput) {
-        searchInput.value = paciente.nombre;
-    }
+        // 3. FUNCIÓN DE REDIRECCIÓN (Global)
+        // ==========================================
+        function seleccionarPaciente(id, nombre) {
+            const searchInput = document.getElementById('search-input');
+            const searchResults = document.getElementById('search-results');
+            
+            if (searchResults) searchResults.classList.add('hidden');
+            if (searchInput) searchInput.value = nombre;
 
-    // 3. REDIRECCIÓN AL CONTROLADOR: 
-    // Como tu buscador corre en 'public/index.php', salimos con '../' e ingresamos a la carpeta de controladores.
-    window.location.href = `../app/controllers/view_patient.php?id=${paciente.id}`;
-}
+            // Redirección al controlador de vista de paciente
+            window.location.href = `../app/controllers/view_patient.php?id=${id}`;
+        }
     </script>
 </body>
 </html>

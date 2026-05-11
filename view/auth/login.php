@@ -99,7 +99,7 @@ if (!defined('BASE_URL')) {
                 </div>
                 <h3 class="text-2xl lg:text-3xl font-bold mb-3 lg:mb-4 tracking-tight">Portal de Salud</h3>
                 <p class="text-blue-100 text-xs lg:text-sm leading-relaxed font-light">
-                    Bienvenido a su espacio digital de confianza. Acceda a sus resultados clínicos, recetas electrónicas e información médica con total seguridad.
+                   Bienvenido a su plataforma digital de confianza. Acceda a los historiales clínicos de sus pacientes y gestione su información médica con total seguridad.
                 </p>
             </div>
         </div>
